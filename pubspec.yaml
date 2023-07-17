@@ -1,0 +1,35 @@
+name: saia_mobile_app
+description: A new Flutter project.
+publish_to: 'none'
+version: 0.1.0
+
+environment:
+  sdk: '>=2.19.5 <3.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_svg: ^2.0.5
+  qr_code_scanner: ^1.0.1
+  sliding_up_panel: ^2.0.0+1
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^2.0.0
+
+flutter:
+  uses-material-design: true
+
+  assets:
+    - 'assets/images/icons/logo.jpg'
+    - 'assets/images/icons/line.svg'
+  fonts:
+    - family: Lato
+      fonts:
+        - asset: assets/fonts/Lato-Regular.ttf
+          style: normal
+        - asset: assets/fonts/Lato-Light.ttf
+          weight: 100
+        - asset: assets/fonts/Lato-Bold.ttf
+          weight: 800
