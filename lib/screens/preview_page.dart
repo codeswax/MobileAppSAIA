@@ -54,8 +54,8 @@ class PreviewPage extends StatelessWidget {
                         ),
                         minimumSize: const Size(150, 50),
                       ),
-                      onPressed: () {
-                        Navigator.pushNamed(context, '/finish');
+                      onPressed: () async {
+                        Navigator.pushNamed(context, '/main');
                       },
                       child: const Text(
                         "Guardar PDF",

@@ -1,14 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
+import 'package:qr_code_scanner/qr_code_scanner.dart';
 import 'package:sliding_up_panel/sliding_up_panel.dart';
-
 import '../widgets/qr_scanner.dart';
 
 class ScanQrPage extends StatefulWidget {
-  ScanQrPage({Key? key}) : super(key: key);
+  const ScanQrPage({Key? key}) : super(key: key);
 
   @override
-  _ScanQrPageState createState() => _ScanQrPageState();
+  State<ScanQrPage> createState() {
+    return _ScanQrPageState();
+  }
 }
 
 class _ScanQrPageState extends State<ScanQrPage> {
@@ -115,7 +117,7 @@ class _ScanQrPageState extends State<ScanQrPage> {
                               _panelController.animatePanelToPosition(
                                 0.0,
                                 duration: const Duration(milliseconds: 300),
-                                curve: Curves.easeInOut,
+                                //curve: Curves.easeInOut,
                               );
                             },
                             child: const Text(
@@ -143,13 +145,13 @@ class _ScanQrPageState extends State<ScanQrPage> {
                     width: 60,
                     height: 10,
                   ),
-                  Spacer(),
+                  const Spacer(),
                   Column(
                     mainAxisAlignment: MainAxisAlignment.spaceAround,
                     crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
                       const Text(
-                        "¡Articulo reconocido!",
+                        "",
                         style: TextStyle(
                           fontSize: 20.0,
                           fontFamily: 'Lato',
@@ -161,7 +163,7 @@ class _ScanQrPageState extends State<ScanQrPage> {
                         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                         children: const [
                           Text(
-                            "Bateria código X0000000",
+                            "",
                             style: TextStyle(
                               fontSize: 18.0,
                               fontFamily: 'Lato',
@@ -169,56 +171,19 @@ class _ScanQrPageState extends State<ScanQrPage> {
                               fontWeight: FontWeight.normal,
                             ),
                           ),
-                          Icon(
-                            Icons.live_help,
-                            color: Colors.white,
-                            size: 40.0,
-                          ),
                         ],
                       ),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                        children: [
-                          const Text(
-                            "Articulos registrados: 0",
-                            style: TextStyle(
-                              fontSize: 18.0,
-                              fontFamily: 'Lato',
-                              color: Color(0xffFFFFFF),
-                              fontWeight: FontWeight.normal,
-                            ),
-                          ),
-                          TextButton(
-                            style: TextButton.styleFrom(
-                              foregroundColor: Colors.white,
-                              backgroundColor: const Color(0xffF6AD3A),
-                              padding: const EdgeInsets.all(5.0),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(35.0),
-                              ),
-                            ),
-                            onPressed: () {},
-                            child: const Text(
-                              "Registrar",
-                              style: TextStyle(
-                                fontSize: 18.0,
-                                fontWeight: FontWeight.normal,
-                                fontFamily: 'Lato',
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
+                      const BottomPanel(),
                     ],
                   ),
-                  Spacer(),
+                  const Spacer(),
                 ],
               ),
             ),
             body: Column(
               mainAxisAlignment: MainAxisAlignment.start,
               children: [
-                Spacer(flex: 1),
+                const Spacer(flex: 1),
                 Container(
                   margin: const EdgeInsets.only(left: 25.0, right: 25.0),
                   child: Align(
@@ -254,18 +219,60 @@ class _ScanQrPageState extends State<ScanQrPage> {
                     ),
                   ),
                 ),
-                Spacer(flex: 2),
+                const Spacer(flex: 2),
               ],
             ),
             onPanelSlide: (double pos) {
               setState(() {
-                isPanelExpanded =
-                    pos > 0.2; // Ajusta el valor según tus necesidades
+                isPanelExpanded = pos > 0.2;
               });
             },
           ),
         ),
       ),
+    );
+  }
+}
+
+class BottomPanel extends StatelessWidget {
+  const BottomPanel({
+    super.key,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+      children: [
+        const Text(
+          "Articulos registrados:",
+          style: TextStyle(
+            fontSize: 18.0,
+            fontFamily: 'Lato',
+            color: Color(0xffFFFFFF),
+            fontWeight: FontWeight.normal,
+          ),
+        ),
+        TextButton(
+          style: TextButton.styleFrom(
+            foregroundColor: Colors.white,
+            backgroundColor: const Color(0xffF6AD3A),
+            padding: const EdgeInsets.all(5.0),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(35.0),
+            ),
+          ),
+          onPressed: () {},
+          child: const Text(
+            "Registrar",
+            style: TextStyle(
+              fontSize: 18.0,
+              fontWeight: FontWeight.normal,
+              fontFamily: 'Lato',
+            ),
+          ),
+        ),
+      ],
     );
   }
 }
