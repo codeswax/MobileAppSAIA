@@ -20,4 +20,16 @@ class SecureStorageService {
       'token': token,
     };
   }
+
+  Future<void> saveDocumentAccessData(String doc) async {
+    await _storage.write(key: 'doc', value: doc);
+  }
+
+  Future<Map<String, String>> loadDocumentAccessData() async {
+    final doc = await _storage.read(key: 'doc') ?? '';
+
+    return {
+      'doc': doc,
+    };
+  }
 }

@@ -46,35 +46,94 @@ class ApiClient {
 
   Future<List<Receipt>> consultReceipts(
       String token, num local, String docType, num docId) async {
-    try {
-      var headers = {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer $token'
-      };
-      var request = http.Request(
-          'POST',
-          Uri.parse(
-              'http://oasysweb.saia.com.ec/andina/api/inventario/reportes/detalleVentasBateriasSinSerie'));
-      request.body = json.encode(
-          {"localId": local, "documentoTipoId": docType, "documentoId": docId});
-      request.headers.addAll(headers);
+    var headers = {
+      'Content-Type': 'application/json',
+      'Authorization': 'Bearer $token'
+    };
+    var request = http.Request(
+        'POST',
+        Uri.parse(
+            'http://oasysweb.saia.com.ec/andina/api/inventario/reportes/detalleVentasBateriasSinSerie'));
+    request.body = json.encode(
+        {"localId": local, "documentoTipoId": docType, "documentoId": docId});
+    request.headers.addAll(headers);
 
-      http.StreamedResponse response = await request.send();
+    http.StreamedResponse response = await request.send();
 
-      switch (response.statusCode) {
-        case 200:
-          List<Receipt> receipts = [];
-          for (var e in jsonDecode(await response.stream.bytesToString())) {
-            receipts.add(Receipt.fromJson(e));
-          }
-          return receipts;
-        case 204:
-          throw InvalidInputException("El valor ingresado no es correcto.");
-        default:
-          throw GeneralException("Error desconocido.");
-      }
-    } catch (e) {
-      throw Error();
+    switch (response.statusCode) {
+      case 200:
+        List<Receipt> receipts = [];
+        for (var e in jsonDecode(await response.stream.bytesToString())) {
+          receipts.add(Receipt.fromJson(e));
+        }
+        return receipts;
+      case 204:
+        throw InvalidInputException("No se encontraron recibos.");
+      default:
+        throw GeneralException("Error desconocido.");
+    }
+  }
+
+  Future<void> consultAvailabilityOfReceipts(
+      String token, num local, String docType, num docId) async {
+    var headers = {
+      'Content-Type': 'application/json',
+      'Authorization': 'Bearer $token'
+    };
+    var request = http.Request(
+        'POST',
+        Uri.parse(
+            'http://oasysweb.saia.com.ec/andina/api/inventario/reportes/detalleVentasBateriasSinSerie'));
+    request.body = json.encode(
+        {"localId": local, "documentoTipoId": docType, "documentoId": docId});
+    request.headers.addAll(headers);
+
+    http.StreamedResponse response = await request.send();
+
+    switch (response.statusCode) {
+      case 200:
+        await _saveDocumentData(docId.toString());
+        break;
+      case 204:
+        throw InvalidInputException("No se encontraron recibos.");
+      default:
+        throw GeneralException("Error desconocido.");
+    }
+  }
+
+  Future<void> assignSerial(String token, String serial, String user, int local,
+      String docId, Receipt receipt) async {
+    var headers = {
+      'Content-Type': 'application/json',
+      'Authorization': 'Bearer $token'
+    };
+    var request = http.Request(
+        'POST',
+        Uri.parse(
+            'http://oasysweb.saia.com.ec/andina/api/inventario/reportes/asignarSerieArticulo'));
+    request.body = json.encode({
+      "localId": local,
+      "documentoTipoId": "FAC",
+      "documentoId": docId,
+      "detalleId": receipt.detailId,
+      "localDestinoId": local,
+      "secuencia": receipt.sequence,
+      "itemId": receipt.itemId,
+      "itemNombre": receipt.itemName,
+      "loteId": null,
+      "serie": serial,
+      "usuarioRegistroId": user,
+      "equipoRegistro": user,
+      "fechaRegistro": null
+    });
+    request.headers.addAll(headers);
+
+    http.StreamedResponse response = await request.send();
+
+    if (response.statusCode == 200) {
+      print(await response.stream.bytesToString());
+    } else {
+      print(response.reasonPhrase);
     }
   }
 
@@ -84,5 +143,9 @@ class ApiClient {
       local,
       token,
     );
+  }
+
+  Future<void> _saveDocumentData(String doc) async {
+    await storageService.saveDocumentAccessData(doc);
   }
 }

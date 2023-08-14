@@ -7,26 +7,22 @@ class EnterReceiptPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SafeArea(
-      child: Container(
-        decoration: const BoxDecoration(color: Color(0xffFFFFFF)),
-        child: Scaffold(
-          backgroundColor: Colors.transparent,
-          body: Container(
-            margin: const EdgeInsets.only(left: 25.0, right: 25.0),
-            child:
-                Column(mainAxisAlignment: MainAxisAlignment.start, children: [
-              Padding(
-                padding: const EdgeInsets.only(top: 25.0, bottom: 25.0),
-                child: Text("¡Bienvenido!",
-                    textAlign: TextAlign.center,
-                    style: Theme.of(context).textTheme.displayLarge),
-              ),
-              Text("Ingresa los siguientes datos para empezar a registrar:",
+      child: Scaffold(
+        backgroundColor: Colors.white,
+        body: Container(
+          margin: const EdgeInsets.only(left: 25.0, right: 25.0),
+          child: Column(mainAxisAlignment: MainAxisAlignment.start, children: [
+            Padding(
+              padding: const EdgeInsets.only(top: 25.0, bottom: 25.0),
+              child: Text("¡Bienvenido!",
                   textAlign: TextAlign.center,
-                  style: Theme.of(context).textTheme.bodyMedium),
-              const ReceiptDataWidget(),
-            ]),
-          ),
+                  style: Theme.of(context).textTheme.displayLarge),
+            ),
+            Text("Ingresa el número de factura para empezar a registrar:",
+                textAlign: TextAlign.center,
+                style: Theme.of(context).textTheme.bodyMedium),
+            const ReceiptDataWidget(),
+          ]),
         ),
       ),
     );

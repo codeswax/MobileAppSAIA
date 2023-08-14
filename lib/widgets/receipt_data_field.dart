@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:saia_mobile_app/core/api_client.dart';
 import 'package:saia_mobile_app/exceptions/custom_exceptions.dart';
-
-import '../models/receipt_data.dart';
 import '../services/secure_storage.dart';
 
 class ReceiptDataWidget extends StatefulWidget {
@@ -12,23 +10,18 @@ class ReceiptDataWidget extends StatefulWidget {
 }
 
 class _ReceiptDataWidgetState extends State<ReceiptDataWidget> {
-  late TextEditingController _docTypeController;
   late TextEditingController _docIdController;
-  String token = "";
-  int local = 0;
   final ApiClient _apiClient = ApiClient();
   final SecureStorageService storageService = SecureStorageService();
 
   @override
   void initState() {
     super.initState();
-    _docTypeController = TextEditingController();
     _docIdController = TextEditingController();
   }
 
   @override
   void dispose() {
-    _docTypeController.dispose();
     _docIdController.dispose();
     super.dispose();
   }
@@ -39,19 +32,6 @@ class _ReceiptDataWidgetState extends State<ReceiptDataWidget> {
       children: [
         const SizedBox(
           height: 20,
-        ),
-        TextField(
-          controller: _docTypeController,
-          decoration: InputDecoration(
-            focusedBorder: const OutlineInputBorder(
-              borderSide: BorderSide(color: Colors.black, width: 2.0),
-            ),
-            enabledBorder: const OutlineInputBorder(
-              borderSide: BorderSide(color: Colors.black, width: 2.0),
-            ),
-            labelStyle: Theme.of(context).textTheme.bodySmall,
-            hintText: 'Tipo de Documento (ej. FAC)',
-          ),
         ),
         const SizedBox(
           height: 10,
@@ -97,13 +77,13 @@ class _ReceiptDataWidgetState extends State<ReceiptDataWidget> {
   }
 
   Future<void> _validateReceiptData() async {
-    final userData = await storageService.loadUserData();
     try {
+      final userData = await storageService.loadUserData();
       checkReceiptData(_docIdController.text);
-      Future<List<Receipt>> receipts = _apiClient.consultReceipts(
+      await _apiClient.consultAvailabilityOfReceipts(
           userData['token']!.toString(),
           int.parse(userData['local']!.toString()),
-          _docTypeController.text,
+          'FAC',
           int.parse(_docIdController.text));
       _toScanQR();
     } on InvalidInputException catch (e) {
