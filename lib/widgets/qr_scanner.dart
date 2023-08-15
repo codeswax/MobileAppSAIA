@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:qr_code_scanner/qr_code_scanner.dart';
+import 'package:saia_mobile_app/core/api_client.dart';
 import 'package:saia_mobile_app/exceptions/custom_exceptions.dart';
+import 'package:saia_mobile_app/services/secure_storage.dart';
 
 import '../controllers/qr_controller.dart';
 import '../models/battery_data.dart';
@@ -8,6 +10,7 @@ import '../models/receipt_data.dart';
 
 class QRScanner extends StatefulWidget {
   final List<Receipt> receipts;
+
   const QRScanner({
     super.key,
     required this.receipts,
@@ -22,11 +25,54 @@ class QRScannerState extends State<QRScanner> {
   QRViewController? controller;
   Barcode? result;
   List<Battery> batteries = [];
+  late Future<List<Receipt>> receiptsList = loadReceiptsList();
+  late Future<String> token;
+  late Future<String> user;
+  late Future<String> local;
+  final ApiClient _apiClient = ApiClient();
+  final SecureStorageService _secureStorageService = SecureStorageService();
+
+  Future<List<Receipt>> loadReceiptsList() async {
+    final userData = await _secureStorageService.loadUserData();
+    final docData = await _secureStorageService.loadDocumentAccessData();
+
+    try {
+      return receiptsList = _apiClient.consultReceipts(
+          userData['token']!.toString(),
+          int.parse(userData['local']!.toString()),
+          'FAC',
+          int.parse(docData['doc']!.toString()));
+    } on GeneralException catch (e) {
+      throw GeneralException(e.message);
+    }
+  }
+
+  Future<String> loadToken() async {
+    final userData = await _secureStorageService.loadUserData();
+
+    try {
+      return userData['token']!.toString();
+    } on GeneralException catch (e) {
+      throw GeneralException(e.message);
+    }
+  }
+
+  Future<String> loadUser() async {
+    final userData = await _secureStorageService.loadUserData();
+
+    try {
+      return userData['username']!.toString();
+    } on GeneralException catch (e) {
+      throw GeneralException(e.message);
+    }
+  }
 
   @override
   void reassemble() {
     super.reassemble();
     controller!.resumeCamera();
+    token = loadToken();
+    user = loadUser();
   }
 
   @override
@@ -66,7 +112,8 @@ class QRScannerState extends State<QRScanner> {
   void _showResultDialog(String code) {
     final modelName =
         Battery.getProductNameFromFamilyCode(code.substring(4, 6));
-    final modelCode = code.substring(28, 38);
+    final modelCode =
+        Battery.getProductModelFromFamilyCode(code.substring(28, 38));
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -75,7 +122,7 @@ class QRScannerState extends State<QRScanner> {
           title: Text('Código QR identificado',
               style: Theme.of(context).textTheme.bodyMedium),
           content: Text(
-            'S/N: $code\nFamilia: $modelName \nModel0: $modelCode',
+            'S/N: $code\nFamilia: $modelName \nModelo: $modelCode',
             style: Theme.of(context).textTheme.bodySmall,
           ),
           actions: [
@@ -93,9 +140,29 @@ class QRScannerState extends State<QRScanner> {
             TextButton(
               style: TextButton.styleFrom(
                   backgroundColor: Theme.of(context).primaryColor),
-              onPressed: () {
+              onPressed: () async {
                 Navigator.of(context).pop();
-                controller!.resumeCamera();
+                //controller!.resumeCamera();
+                // Wait for receiptsList to be loaded
+                var productName =
+                    Battery.getProductNameFromFamilyCode(code.substring(4, 6));
+                var productModel = Battery.getProductModelFromFamilyCode(
+                    code.substring(28, 38));
+                var completeItemName = "BATERIA $productName $productModel";
+                print({completeItemName});
+                var r = await receiptsList;
+                var t = await token;
+                var u = await user;
+                var matchingReceipt = r.firstWhere(
+                  (receipt) => receipt.itemName == completeItemName,
+                );
+                print({
+                  matchingReceipt.sequence,
+                  matchingReceipt.detailId,
+                  matchingReceipt.itemName
+                });
+
+                _apiClient.assignSerial(t, code, u, matchingReceipt);
               },
               child: Text('Registrar',
                   style: Theme.of(context).textTheme.labelSmall),

@@ -5,6 +5,7 @@ import 'package:saia_mobile_app/exceptions/custom_exceptions.dart';
 import 'package:saia_mobile_app/services/secure_storage.dart';
 
 import '../models/receipt_data.dart';
+import '../models/battery_data.dart';
 
 class ApiClient {
   final SecureStorageService storageService = SecureStorageService();
@@ -101,8 +102,9 @@ class ApiClient {
     }
   }
 
-  Future<void> assignSerial(String token, String serial, String user, int local,
-      String docId, Receipt receipt) async {
+  Future<void> assignSerial(
+      String token, String serial, String user, Receipt receipt) async {
+    //debes de reducir la cantidad de parametros, es decir crea algun servicio que te permita almacenar al usuario, cosa que de esa manera no tengas que enviarlo, de la misma manera con el token
     var headers = {
       'Content-Type': 'application/json',
       'Authorization': 'Bearer $token'
@@ -110,21 +112,19 @@ class ApiClient {
     var request = http.Request(
         'POST',
         Uri.parse(
-            'http://oasysweb.saia.com.ec/andina/api/inventario/reportes/asignarSerieArticulo'));
+            'http://oasysweb.saia.com.ec/andina/api/inventario/documento/asignarSerieArticulo'));
     request.body = json.encode({
-      "localId": local,
+      "localId": receipt.localId, // esto estaba antes "localId": local,
       "documentoTipoId": "FAC",
-      "documentoId": docId,
+      "documentoId": receipt.docId, // esto estaba antes "documentoId": docId,
       "detalleId": receipt.detailId,
-      "localDestinoId": local,
+      "localDestinoId":
+          receipt.destinationId, // esto estaba antes "localDestinoId": local,
       "secuencia": receipt.sequence,
-      "itemId": receipt.itemId,
-      "itemNombre": receipt.itemName,
-      "loteId": null,
+      "loteId": "",
       "serie": serial,
       "usuarioRegistroId": user,
       "equipoRegistro": user,
-      "fechaRegistro": null
     });
     request.headers.addAll(headers);
 
@@ -147,5 +147,26 @@ class ApiClient {
 
   Future<void> _saveDocumentData(String doc) async {
     await storageService.saveDocumentAccessData(doc);
+  }
+
+  Future<void> insertSerialToReceipt(
+    String productCode,
+    String receiptCode,
+    String token,
+    String user,
+    int local,
+    String docType,
+  ) async {
+    var receiptsWithoutSerial =
+        await consultReceipts(token, local, docType, int.parse(receiptCode));
+    var productName =
+        Battery.getProductNameFromFamilyCode(productCode.substring(4, 6));
+    var productModel =
+        Battery.getProductModelFromFamilyCode(productCode.substring(28, 38));
+    print({productName, productModel});
+    var completeItemName = "BATERIA $productName $productModel";
+    var matchingReceipt = receiptsWithoutSerial.firstWhere(
+      (receipt) => receipt.itemName == completeItemName,
+    );
   }
 }

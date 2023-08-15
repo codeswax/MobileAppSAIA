@@ -11,8 +11,11 @@ dependencies:
     sdk: flutter
   flutter_secure_storage: ^8.0.0
   flutter_svg: ^2.0.5
+  get: ^4.6.5
   http: ^1.1.0
-  pdf: ^3.10.1
+  js_interop: ^0.0.1
+  pdf: ^3.10.4
+  printing: ^5.11.0
   qr_code_scanner: ^1.0.1
   sliding_up_panel: ^2.0.0+1
 
