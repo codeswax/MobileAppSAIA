@@ -1,11 +1,13 @@
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
+import '../models/api_data.dart';
+
 class SecureStorageService {
   final FlutterSecureStorage _storage = const FlutterSecureStorage();
 
-  Future<void> saveUserData(String username, String local, String token) async {
-    await _storage.write(key: 'username', value: username);
-    await _storage.write(key: 'local', value: local);
+  Future<void> saveUserData(LoginData loginData, String token) async {
+    await _storage.write(key: 'username', value: loginData.user);
+    await _storage.write(key: 'local', value: loginData.local.toString());
     await _storage.write(key: 'token', value: token);
   }
 

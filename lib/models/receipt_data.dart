@@ -8,7 +8,7 @@ class Receipt {
   final String itemId;
   final String itemName;
   final dynamic lotId;
-  final dynamic serial;
+  late dynamic serial;
   final dynamic userRegId;
   final dynamic equipmentReg;
   final dynamic dateReg;

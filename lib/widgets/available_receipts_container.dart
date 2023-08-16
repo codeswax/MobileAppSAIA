@@ -1,20 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:saia_mobile_app/exceptions/custom_exceptions.dart';
-import 'package:sliding_up_panel/sliding_up_panel.dart';
-
-import '../core/api_client.dart';
+import 'package:saia_mobile_app/main.dart';
+import 'package:saia_mobile_app/screens/preview_page.dart';
 import '../models/receipt_data.dart';
-import '../services/secure_storage.dart';
+import '../models/report_data.dart';
 
 class AvailableReceiptsContainer extends StatefulWidget {
   final List<Receipt> receipts;
+  final DataStorage dataStorage;
   const AvailableReceiptsContainer({
     super.key,
     required this.receipts,
+    required this.dataStorage,
   });
-
-  //final PanelController _panelController;
 
   @override
   State<AvailableReceiptsContainer> createState() =>
@@ -111,12 +110,13 @@ class _AvailableReceiptsContainerState
                           minimumSize: const Size(150, 50),
                         ),
                         onPressed: () {
-                          //Navigator.pushNamed(context, '/preview');
+                          goToPreviewPage(dataStorage);
                         },
                         child: Text("Confirmar y terminar",
                             style: Theme.of(context).textTheme.labelSmall),
                       ),
                     ),
+
                     //const SizedBox(height: 10),
                     /*
                     Material(
@@ -153,6 +153,17 @@ class _AvailableReceiptsContainerState
               ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+
+  void goToPreviewPage(DataStorage dataStorage) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => PreviewPage(
+          dataStorage: dataStorage,
         ),
       ),
     );

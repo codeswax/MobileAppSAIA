@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:saia_mobile_app/core/api_client.dart';
 import 'package:saia_mobile_app/exceptions/custom_exceptions.dart';
+import 'package:saia_mobile_app/models/api_data.dart';
 import '../services/secure_storage.dart';
+import 'dialog/dialog_implementation.dart';
+import 'dialog/dialog_interface.dart';
 
 class ReceiptDataWidget extends StatefulWidget {
   const ReceiptDataWidget({super.key});
@@ -11,8 +14,10 @@ class ReceiptDataWidget extends StatefulWidget {
 
 class _ReceiptDataWidgetState extends State<ReceiptDataWidget> {
   late TextEditingController _docIdController;
-  final ApiClient _apiClient = ApiClient();
-  final SecureStorageService storageService = SecureStorageService();
+  final ApiClient apiClient = ApiClient();
+  final SecureStorageService secureStorageService = SecureStorageService();
+  final DialogService dialogService = DialogImplementation();
+  final ValidationService validationService = ValidationService();
 
   @override
   void initState() {
@@ -66,7 +71,10 @@ class _ReceiptDataWidgetState extends State<ReceiptDataWidget> {
               ),
             ),
             onPressed: () async {
-              _validateReceiptData();
+              final userData = await secureStorageService.loadUserData();
+              String token = userData['token']!.toString();
+              int local = int.parse(userData['local']!.toString());
+              proceedToValidateReceipt(token, local);
             },
             child:
                 Text("Ingresar", style: Theme.of(context).textTheme.labelLarge),
@@ -76,50 +84,22 @@ class _ReceiptDataWidgetState extends State<ReceiptDataWidget> {
     );
   }
 
-  Future<void> _validateReceiptData() async {
+  Future<void> proceedToValidateReceipt(String token, num local) async {
     try {
-      final userData = await storageService.loadUserData();
-      checkReceiptData(_docIdController.text);
-      await _apiClient.consultAvailabilityOfReceipts(
-          userData['token']!.toString(),
-          int.parse(userData['local']!.toString()),
-          'FAC',
-          int.parse(_docIdController.text));
-      _toScanQR();
+      validationService.checkReceiptData(_docIdController.text);
+      ReceiptQueryData receiptQueryData =
+          ReceiptQueryData(local, 'FAC', int.parse(_docIdController.text));
+      await apiClient.consultAvailabilityOfReceipts(token, receiptQueryData);
+      goToScanQRPage();
     } on InvalidInputException catch (e) {
-      _showDialogInvalidReceiptData(e.message);
+      dialogService.showExceptionDialog(context, e.message);
     } on GeneralException catch (e) {
-      _showDialogInvalidReceiptData(e.message);
+      dialogService.showExceptionDialog(context, e.message);
     }
   }
 
-  Future<void> _toScanQR() async {
+  Future<void> goToScanQRPage() async {
     if (!context.mounted) return;
     Navigator.pushNamed(context, '/scanQR');
-  }
-
-  Future<void> _showDialogInvalidReceiptData(String content) async {
-    if (!context.mounted) return;
-    await showDialog<String>(
-        context: context,
-        builder: (BuildContext context) => AlertDialog(
-              title: Text(
-                'ERROR',
-                style: Theme.of(context).textTheme.bodyMedium,
-              ),
-              content: Text(
-                content,
-                style: Theme.of(context).textTheme.bodyMedium,
-              ),
-              actions: <Widget>[
-                TextButton(
-                  onPressed: () => Navigator.pop(context, 'OK'),
-                  child: Text(
-                    'OK',
-                    style: Theme.of(context).textTheme.bodySmall,
-                  ),
-                ),
-              ],
-            ));
   }
 }

@@ -3,27 +3,27 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:saia_mobile_app/exceptions/custom_exceptions.dart';
 import 'package:saia_mobile_app/services/secure_storage.dart';
-
+import '../models/api_data.dart';
 import '../models/receipt_data.dart';
-import '../models/battery_data.dart';
 
 class ApiClient {
   final SecureStorageService storageService = SecureStorageService();
-
-  Future<void> login(String user, String pass, int local) async {
+  String result = "";
+  Future<void> login(LoginData loginData) async {
     var headers = {'Content-Type': 'application/json'};
     var request = http.Request(
       'POST',
       Uri.parse(
           'http://oasysweb.saia.com.ec/andina/api/seguridad/acceso/login'),
     );
+
     request.body = json.encode({
-      "usuarioId": user,
-      "clave": pass,
+      "usuarioId": loginData.user,
+      "clave": loginData.pass,
       "empresaId": 1,
-      "localId": local,
+      "localId": int.parse(loginData.local),
       "equipoIP": "",
-      "equipoNombre": user,
+      "equipoNombre": loginData.user,
     });
     request.headers.addAll(headers);
 
@@ -33,7 +33,7 @@ class ApiClient {
       case 200:
         final responseBody = await response.stream.bytesToString();
         final responseJson = jsonDecode(responseBody);
-        _saveUserData(user, local.toString(), responseJson['result']);
+        _saveUserData(loginData, responseJson['result']);
         break;
       case 400:
         final responseBody = await response.stream.bytesToString();
@@ -46,7 +46,7 @@ class ApiClient {
   }
 
   Future<List<Receipt>> consultReceipts(
-      String token, num local, String docType, num docId) async {
+      String token, ReceiptQueryData receiptQueryData) async {
     var headers = {
       'Content-Type': 'application/json',
       'Authorization': 'Bearer $token'
@@ -55,12 +55,19 @@ class ApiClient {
         'POST',
         Uri.parse(
             'http://oasysweb.saia.com.ec/andina/api/inventario/reportes/detalleVentasBateriasSinSerie'));
-    request.body = json.encode(
-        {"localId": local, "documentoTipoId": docType, "documentoId": docId});
+    request.body = json.encode({
+      "localId": receiptQueryData.local,
+      "documentoTipoId": receiptQueryData.docType,
+      "documentoId": receiptQueryData.docId
+    });
     request.headers.addAll(headers);
 
     http.StreamedResponse response = await request.send();
-
+    print({
+      receiptQueryData.local,
+      receiptQueryData.docType,
+      receiptQueryData.docId
+    });
     switch (response.statusCode) {
       case 200:
         List<Receipt> receipts = [];
@@ -76,7 +83,7 @@ class ApiClient {
   }
 
   Future<void> consultAvailabilityOfReceipts(
-      String token, num local, String docType, num docId) async {
+      String token, ReceiptQueryData receiptQueryData) async {
     var headers = {
       'Content-Type': 'application/json',
       'Authorization': 'Bearer $token'
@@ -85,15 +92,18 @@ class ApiClient {
         'POST',
         Uri.parse(
             'http://oasysweb.saia.com.ec/andina/api/inventario/reportes/detalleVentasBateriasSinSerie'));
-    request.body = json.encode(
-        {"localId": local, "documentoTipoId": docType, "documentoId": docId});
+    request.body = json.encode({
+      "localId": receiptQueryData.local,
+      "documentoTipoId": receiptQueryData.docType,
+      "documentoId": receiptQueryData.docId
+    });
     request.headers.addAll(headers);
 
     http.StreamedResponse response = await request.send();
 
     switch (response.statusCode) {
       case 200:
-        await _saveDocumentData(docId.toString());
+        await _saveDocumentData(localString(receiptQueryData.docId));
         break;
       case 204:
         throw InvalidInputException("No se encontraron recibos.");
@@ -102,9 +112,12 @@ class ApiClient {
     }
   }
 
-  Future<void> assignSerial(
-      String token, String serial, String user, Receipt receipt) async {
-    //debes de reducir la cantidad de parametros, es decir crea algun servicio que te permita almacenar al usuario, cosa que de esa manera no tengas que enviarlo, de la misma manera con el token
+  Future<String> assignSerial(
+      String token, SerialAssignmentData serialAssignmentData) async {
+    String serial = serialAssignmentData.serial;
+    String user = serialAssignmentData.user;
+    Receipt receipt = serialAssignmentData.receipt;
+
     var headers = {
       'Content-Type': 'application/json',
       'Authorization': 'Bearer $token'
@@ -114,12 +127,11 @@ class ApiClient {
         Uri.parse(
             'http://oasysweb.saia.com.ec/andina/api/inventario/documento/asignarSerieArticulo'));
     request.body = json.encode({
-      "localId": receipt.localId, // esto estaba antes "localId": local,
+      "localId": receipt.localId,
       "documentoTipoId": "FAC",
-      "documentoId": receipt.docId, // esto estaba antes "documentoId": docId,
+      "documentoId": receipt.docId,
       "detalleId": receipt.detailId,
-      "localDestinoId":
-          receipt.destinationId, // esto estaba antes "localDestinoId": local,
+      "localDestinoId": receipt.destinationId,
       "secuencia": receipt.sequence,
       "loteId": "",
       "serie": serial,
@@ -130,43 +142,26 @@ class ApiClient {
 
     http.StreamedResponse response = await request.send();
 
-    if (response.statusCode == 200) {
-      print(await response.stream.bytesToString());
-    } else {
-      print(response.reasonPhrase);
+    switch (response.statusCode) {
+      case 200:
+        final responseBody = await response.stream.bytesToString();
+        final responseJson = jsonDecode(responseBody);
+        result = responseJson['message'];
+        return result;
+      default:
+        final responseBody = await response.stream.bytesToString();
+        throw GeneralException(responseBody);
     }
   }
 
-  Future<void> _saveUserData(String user, String local, String token) async {
+  Future<void> _saveUserData(LoginData loginData, String token) async {
     await storageService.saveUserData(
-      user,
-      local,
+      loginData,
       token,
     );
   }
 
   Future<void> _saveDocumentData(String doc) async {
     await storageService.saveDocumentAccessData(doc);
-  }
-
-  Future<void> insertSerialToReceipt(
-    String productCode,
-    String receiptCode,
-    String token,
-    String user,
-    int local,
-    String docType,
-  ) async {
-    var receiptsWithoutSerial =
-        await consultReceipts(token, local, docType, int.parse(receiptCode));
-    var productName =
-        Battery.getProductNameFromFamilyCode(productCode.substring(4, 6));
-    var productModel =
-        Battery.getProductModelFromFamilyCode(productCode.substring(28, 38));
-    print({productName, productModel});
-    var completeItemName = "BATERIA $productName $productModel";
-    var matchingReceipt = receiptsWithoutSerial.firstWhere(
-      (receipt) => receipt.itemName == completeItemName,
-    );
   }
 }

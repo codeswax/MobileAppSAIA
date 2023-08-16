@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:saia_mobile_app/core/api_client.dart';
 import 'package:saia_mobile_app/exceptions/custom_exceptions.dart';
+import 'package:saia_mobile_app/models/api_data.dart';
+import 'package:saia_mobile_app/widgets/dialog/dialog_implementation.dart';
+import 'package:saia_mobile_app/widgets/dialog/dialog_interface.dart';
 
 class UserCredentialsWidget extends StatefulWidget {
   const UserCredentialsWidget({super.key});
@@ -10,24 +13,26 @@ class UserCredentialsWidget extends StatefulWidget {
 }
 
 class _UserCredentialsWidgetState extends State<UserCredentialsWidget> {
-  late TextEditingController _userController;
-  late TextEditingController _passController;
-  late TextEditingController _localController;
-  final ApiClient _apiClient = ApiClient();
+  late TextEditingController userController;
+  late TextEditingController passController;
+  late TextEditingController localController;
+  final ApiClient apiClient = ApiClient();
+  final DialogService dialogService = DialogImplementation();
+  final ValidationService validationService = ValidationService();
 
   @override
   void initState() {
     super.initState();
-    _userController = TextEditingController();
-    _passController = TextEditingController();
-    _localController = TextEditingController();
+    userController = TextEditingController();
+    passController = TextEditingController();
+    localController = TextEditingController();
   }
 
   @override
   void dispose() {
-    _userController.dispose();
-    _passController.dispose();
-    _localController.dispose();
+    userController.dispose();
+    passController.dispose();
+    localController.dispose();
     super.dispose();
   }
 
@@ -38,120 +43,98 @@ class _UserCredentialsWidgetState extends State<UserCredentialsWidget> {
         const SizedBox(
           height: 20,
         ),
-        TextField(
-          controller: _userController,
-          decoration: InputDecoration(
-            focusedBorder: const OutlineInputBorder(
-              borderSide: BorderSide(color: Colors.black, width: 2.0),
-            ),
-            enabledBorder: const OutlineInputBorder(
-              borderSide: BorderSide(color: Colors.black, width: 2.0),
-            ),
-            labelStyle: Theme.of(context).textTheme.bodySmall,
-            labelText: 'Usuario',
-          ),
+        buildTextField(
+          controller: userController,
+          labelText: 'Usuario',
         ),
         const SizedBox(
           height: 10,
         ),
-        TextField(
-          controller: _passController,
+        buildTextField(
+          controller: passController,
+          labelText: 'Contraseña',
           obscureText: true,
-          decoration: InputDecoration(
-            focusedBorder: const OutlineInputBorder(
-              borderSide: BorderSide(color: Colors.black, width: 2.0),
-            ),
-            enabledBorder: const OutlineInputBorder(
-              borderSide: BorderSide(color: Colors.black, width: 2.0),
-            ),
-            labelStyle: Theme.of(context).textTheme.bodySmall,
-            labelText: 'Contraseña',
-          ),
         ),
         const SizedBox(
           height: 10,
         ),
-        TextField(
-          controller: _localController,
-          decoration: InputDecoration(
-            focusedBorder: const OutlineInputBorder(
-              borderSide: BorderSide(color: Colors.black, width: 2.0),
-            ),
-            enabledBorder: const OutlineInputBorder(
-              borderSide: BorderSide(color: Colors.black, width: 2.0),
-            ),
-            labelStyle: Theme.of(context).textTheme.bodySmall,
-            labelText: 'Número de Local',
-          ),
+        buildTextField(
+          controller: localController,
+          labelText: 'Número de Local',
         ),
         const SizedBox(
           height: 20,
         ),
-        Material(
-          elevation: 5.0,
-          borderRadius: BorderRadius.circular(25.0),
-          child: TextButton(
-            style: TextButton.styleFrom(
-              backgroundColor: Colors.white,
-              padding: const EdgeInsets.all(10.0),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(25.0),
-              ),
-            ),
-            onPressed: () async {
-              _validateLogin();
-            },
-            child: Text("Iniciar Sesión",
-                style: Theme.of(context).textTheme.labelLarge),
-          ),
-        ),
+        buildLoginButton(context),
       ],
     );
   }
 
-  Future<void> _validateLogin() async {
+  Widget buildTextField({
+    required TextEditingController controller,
+    required String labelText,
+    bool obscureText = false,
+  }) {
+    return TextField(
+      controller: controller,
+      obscureText: obscureText,
+      decoration: InputDecoration(
+        focusedBorder: const OutlineInputBorder(
+          borderSide: BorderSide(color: Colors.black, width: 2.0),
+        ),
+        enabledBorder: const OutlineInputBorder(
+          borderSide: BorderSide(color: Colors.black, width: 2.0),
+        ),
+        labelStyle: Theme.of(context).textTheme.bodySmall,
+        labelText: labelText,
+      ),
+    );
+  }
+
+  Widget buildLoginButton(BuildContext context) {
+    return Material(
+      elevation: 5.0,
+      borderRadius: BorderRadius.circular(25.0),
+      child: TextButton(
+        style: TextButton.styleFrom(
+          backgroundColor: Colors.white,
+          padding: const EdgeInsets.all(10.0),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(25.0),
+          ),
+        ),
+        onPressed: () async {
+          LoginData credentials = LoginData(
+              userController.text, passController.text, localController.text);
+          proceedToLogin(context, credentials);
+        },
+        child: Text("Iniciar Sesión",
+            style: Theme.of(context).textTheme.labelLarge),
+      ),
+    );
+  }
+
+  Future<void> proceedToLogin(
+      BuildContext context, LoginData credentials) async {
     try {
-      checkCredentials(
-          _userController.text, _passController.text, _localController.text);
-      await _apiClient.login(_userController.text, _passController.text,
-          int.parse(_localController.text));
-      _toEnterReceipt();
-    } on InvalidInputException catch (e) {
-      _showExceptionDialog(e.message);
-    } on InvalidCredentialsException catch (e) {
-      _showExceptionDialog(e.message);
-    } on GeneralException catch (e) {
-      _showExceptionDialog(e.message);
+      validationService.checkCredentials(credentials);
+      await apiClient.login(credentials);
+      goToEnterReceiptPage();
+    } catch (e) {
+      handleException(context, e);
     }
   }
 
-  Future<void> _toEnterReceipt() async {
-    if (!context.mounted) return;
-    Navigator.pushReplacementNamed(context, '/enterReceipt');
+  void handleException(BuildContext context, dynamic exception) {
+    if (exception is AppException) {
+      dialogService.showExceptionDialog(context, exception.message);
+    } else {
+      dialogService.showExceptionDialog(context, 'Error desconocido.');
+    }
   }
 
-  Future<void> _showExceptionDialog(String content) async {
+  Future<void> goToEnterReceiptPage() async {
     if (!context.mounted) return;
-    await showDialog<String>(
-        context: context,
-        builder: (BuildContext context) => AlertDialog(
-              title: Text(
-                'ERROR',
-                style: Theme.of(context).textTheme.bodyMedium,
-              ),
-              content: Text(
-                content,
-                style: Theme.of(context).textTheme.bodyMedium,
-              ),
-              actions: <Widget>[
-                TextButton(
-                  onPressed: () => Navigator.pop(context, 'OK'),
-                  child: Text(
-                    'OK',
-                    style: Theme.of(context).textTheme.bodySmall,
-                  ),
-                ),
-              ],
-            ));
+    Navigator.pushReplacementNamed(context, '/enterReceipt');
   }
 }
